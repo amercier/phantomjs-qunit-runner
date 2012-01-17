@@ -24,6 +24,7 @@ import org.apache.maven.plugin.MojoFailureException;
  * @phase test
  */
 public class PhantomJsQunitRunnerMojo extends AbstractMojo {
+
 	/**
 	 * Directory of JS src files to be tested.
 	 * 
@@ -31,6 +32,13 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 	 * @required
 	 */
 	private File jsSourceDirectory;
+
+	/**
+	 * Optional additional JavaScript files (comma-separated list)
+	 * 
+	 * @parameter expression="${qunit.jsinc.files}"
+	 */
+	private String jsSourceIncludes;
 
 	/**
 	 * Directory of JS test files.
@@ -70,6 +78,13 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 	private String pathToPhantomJs;
 
 	/**
+	 * Optional Xvfb DISPLAY number for PhantomJS
+	 * 
+	 * @parameter expression="${phantomjs.display}"
+	 */
+	private int phantomJsDisplay;
+
+	/**
 	 * Filenames of JS test files from the jsTestDirectory to exclude.
 	 * 
 	 * @parameter alias="excludes";
@@ -105,19 +120,32 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 		}
 	}
 
+	protected File[] getJsIncludeFiles() {
+		String[] filenames = jsSourceIncludes.split(",");
+		File[] files = new File[filenames.length];
+		int i = 0;
+		for(String filename : filenames) {
+			files[i++] = new File(filename);
+		}
+		return files;
+	}
+
 	private int runQUnitInPhantomJs(String testFile, String testFileDirectory) {
 		int exitVal = 255;
 		try {
+
 			// Set paramaters
 			// needs to be : phantomjs phantomjsqunitrunner qunit.js AbcTest.js
 			// Abc.js
 			// Abc.js
-			String[] params = new String[5];
+			String[] params = new String[5 + (getJsIncludeFiles()).length];
 			// XXX todo : unix executable. how to store and pull down from
 			// nexus?
 
 			// Set path to PhantomJs
-			params[0] = pathToPhantomJs + "/" + "phantomjs";
+			int i = 0;
+			//params[i++] = "DISPLAY=:" + phantomJsDisplay == null ? 0 : phantomJsDisplay);
+			params[i++] = pathToPhantomJs + "/" + "phantomjs";
 
 			// Copy phantomJsQunitRunner and qUnitJsFileName over from
 			// phantomjs-qunit-runner plugin over for use..
@@ -129,24 +157,43 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 				FileUtils.copyInputStreamToFile(this.getClass()
 						.getClassLoader().getResourceAsStream(qUnitJsFileName),
 						new File(buildDirectory + "/" + qUnitJsFileName));
-			} catch (IOException e) {
+			}
+			catch (IOException e) {
 				e.printStackTrace();
 			}
 
 			// Set param 1 and 3 to the previously copied files
-			params[1] = buildDirectory + "/" + phantomJsQunitRunner;
-			params[2] = buildDirectory + "/" + qUnitJsFileName;
+			params[i++] = buildDirectory + "/" + phantomJsQunitRunner;
+			params[i++] = buildDirectory + "/" + qUnitJsFileName;
 			// params[1] =
 			// this.getClass().getClassLoader().getResource(phantomJsQunitRunner).toString();
 			// params[2] =
 			// this.getClass().getClassLoader().getResource(qUnitJsFileName).toString();
-			params[3] = testFileDirectory + "/" + testFile;
+
+			params[i++] = testFileDirectory + "/" + testFile;
+
 			// Some dirty string manipulation here to resolve js src file
-			params[4] = jsSourceDirectory + "/"
+			params[i++] = jsSourceDirectory + "/"
 					+ testFile.substring(0, testFile.indexOf(jsTestFileSuffix))
 					+ ".js";
 
-			Process pr = new ProcessBuilder(params).start();
+			// Add <jsSourceIncludes> to the parameters
+			for(File temp : getJsIncludeFiles()) {
+				params[i++] = temp.toString();
+			}
+
+			// Environment
+			ProcessBuilder prb = new ProcessBuilder(params);
+			prb.environment().put("DISPLAY", ":" + phantomJsDisplay + ".0");
+			this.getLog().info("DISPLAY = " + prb.environment().get("DISPLAY"));
+
+			String parametersString = "Running: ";
+			for(int j = 0 ; j < params.length ; j++) {
+				parametersString += " " + params[j];
+			}
+			this.getLog().info(parametersString);
+
+			Process pr = prb.start();
 
 			// Grab STDOUT of execution (this is the junit xml output generated
 			// by the js), write to file

@@ -31,7 +31,7 @@ var JUnitXmlFormatter = {
 	printJUnitXmlTestCaseFail : function(testName, testRunTime, failureType,
 			failureMessage) {
 		console
-				.log("XXX<testcase time=\"{_testRunTime}\" name=\"{_testName}\">"
+				.log("<testcase time=\"{_testRunTime}\" name=\"{_testName}\">"
 						.supplant({
 							_testRunTime : testRunTime,
 							_testName : testName
@@ -55,11 +55,21 @@ var JUnitXmlFormatter = {
 };
 
 function importJs(scriptName) {
-	phantom.injectJs(scriptName);
+	if( !phantom.injectJs(scriptName) ) {
+		console.error('File not found: ' + scriptName);
+		phantom.exit(1);
+	}
 }
 
 // Arg1 should be QUnit
 importJs(phantom.args[0]);
+
+// Arg 4+ should be included files
+var usrIncScripts = [];
+for(var i = 3 ; i < phantom.args.length ; i++) {
+	usrIncScripts[i-3] = phantom.args[i];
+	importJs(phantom.args[i]);
+}
 
 // Arg2 should be user tests
 var usrTestScript = phantom.args[1];
@@ -89,8 +99,7 @@ function extend(a, b) {
 
 	return a;
 }
-JUnitXmlFormatter.printJUnitXmlOutputHeader(0, testsPassed + testsFailed,
-		totalRunTime, testsFailed, usrTestScript);
+JUnitXmlFormatter.printJUnitXmlOutputHeader(0, testsPassed + testsFailed, totalRunTime, testsFailed, usrTestScript);
 QUnit.begin({});
 
 // Initialize the config, saving the execution queue

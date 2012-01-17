@@ -30,6 +30,13 @@ public class QunitHtmlWrapperMojo extends AbstractMojo {
 	private File jsSourceDirectory;
 
 	/**
+	 * Optional additional JavaScript files (comma-separated list)
+	 * 
+	 * @parameter expression="${qunit.jsinc.files}"
+	 */
+	private String jsSourceIncludes;
+
+	/**
 	 * Directory of JS test files.
 	 * 
 	 * @parameter expression="${qunit.jstest.directory}"
@@ -55,12 +62,31 @@ public class QunitHtmlWrapperMojo extends AbstractMojo {
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		qUnitHtmlOutputPath = buildDirectory + "/" + qUnitHtmlOutputDirectoryName;
 
+		// Copy include files
+		try {
+			for(File temp : getJsIncludeFiles()) {
+				FileUtils.copyFile(temp, new File(qUnitHtmlOutputPath + "/" + temp.getName()));
+			}
+		}
+		catch(IOException e) {
+			e.printStackTrace();
+		}
+
 		// Go over all the js test files in jsTestDirectory
 		for (File temp : getJsTestFiles(jsTestDirectory.toString())) {
 			// Run each through phantomJs to test
-			generateQunitHtmlOutput(temp.getName().toString(), jsTestDirectory
-					.toString());
+			generateQunitHtmlOutput(temp.getName().toString(), jsTestDirectory.toString());
 		}
+	}
+
+	protected File[] getJsIncludeFiles() {
+		String[] filenames = jsSourceIncludes.split(",");
+		File[] files = new File[filenames.length];
+		int i = 0;
+		for(String filename : filenames) {
+			files[i++] = new File(filename);
+		}
+		return files;
 	}
 
 	private void generateQunitHtmlOutput(String testFile, String testFileDirectory) {
@@ -125,6 +151,9 @@ public class QunitHtmlWrapperMojo extends AbstractMojo {
 			output = new BufferedWriter(new FileWriter(qUnitHtmlOutputPath
 					+ "/" + jsTestFile + ".html"));
 			output.write(qUnitHeader);
+			for(File temp : getJsIncludeFiles()) {
+				output.write(generateScriptTag(temp.getName()));
+			}
 			output.write(generateScriptTag(jsSrcFile));
 			output.write(generateScriptTag(jsTestFile));
 			output.write(qUnitFooter);
