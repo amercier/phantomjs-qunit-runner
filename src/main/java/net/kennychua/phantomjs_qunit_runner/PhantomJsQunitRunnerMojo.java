@@ -83,6 +83,14 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 	 * @parameter expression="${phantomjs.display}"
 	 */
 	private int phantomJsDisplay;
+	
+	/**
+	 * JUnit-compliant XML reports directory 
+	 * 
+	 * @parameter expression="${project.reports.directory}"
+	 * @required
+	 */
+	private String xmlOutputDirectory;
 
 	/**
 	 * Filenames of JS test files from the jsTestDirectory to exclude.
@@ -96,7 +104,7 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 	private static final String qUnitJsFileName = "qunit-git.js";
 	private static final String phantomJsQunitRunner = "phantomjs-qunit-runner.js";
 	private static final String jsTestFileSuffix = "Test.js";
-	private static final String jUnitXmlDirectoryName = "junitxml";
+	//private static final String jUnitXmlDirectoryName = "junitxml";
 
 	public void setExcludes(String[] excludes) {
 		mExcludes = excludes;
@@ -182,7 +190,8 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 				params[i++] = temp.toString();
 			}
 
-			// Environment
+			// Add DISPLAY environment variable
+			// This allow PhantomJS to be run in a fake-X environment (Xvfb)
 			ProcessBuilder prb = new ProcessBuilder(params);
 			prb.environment().put("DISPLAY", ":" + phantomJsDisplay + ".0");
 			this.getLog().info("DISPLAY = " + prb.environment().get("DISPLAY"));
@@ -200,7 +209,7 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 			BufferedReader input = new BufferedReader(new InputStreamReader(
 					pr.getInputStream()));
 			File jUnitXmlOutputPath = new File(buildDirectory + "/"
-					+ jUnitXmlDirectoryName);
+					+ xmlOutputDirectory);
 
 			jUnitXmlOutputPath.mkdir();
 			BufferedWriter output = new BufferedWriter(new FileWriter(
