@@ -8,11 +8,9 @@ String.prototype.supplant = function(o) {
 
 var JUnitXmlFormatter = {
 	someProperty : 'some value here',
-	printJUnitXmlOutputHeader : function(testsErrors, testsTotal,
-			testsTotalRunTime, testsFailures, testsFileName) {
+	printJUnitXmlOutputHeader : function(testsErrors, testsTotal, testsTotalRunTime, testsFailures, testsFileName) {
 		console.log("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>");
-		console
-				.log("<testsuite errors=\"{_testsErrors}\" tests=\"{_testsTotal}\" time=\"{_testsTotalRunTime}\" failures=\"{_testsFailures}\" name=\"{_testsFileName}\">"
+		console.log("<testsuite errors=\"{_testsErrors}\" tests=\"{_testsTotal}\" time=\"{_testsTotalRunTime}\" failures=\"{_testsFailures}\" name=\"{_testsFileName}\">"
 						.supplant({
 							_testsErrors : testsErrors,
 							_testsTotal : testsTotal,
@@ -64,19 +62,22 @@ function importJs(scriptName) {
 // Arg1 should be QUnit
 importJs(phantom.args[0]);
 
-// Arg 4+ should be included files
+// Arg 5+ should be included files
 var usrIncScripts = [];
-for(var i = 3 ; i < phantom.args.length ; i++) {
+for(var i = 4 ; i < phantom.args.length ; i++) {
 	usrIncScripts[i-3] = phantom.args[i];
 	importJs(phantom.args[i]);
 }
 
-// Arg2 should be user tests
-var usrTestScript = phantom.args[1];
-importJs(usrTestScript);
+// Arg2 should be user tests directory
+var usrTestDirectory = phantom.args[1];
 
 // Arg3 should be user tests
-var usrSrcScript = phantom.args[2];
+var usrTestScript = phantom.args[2];
+importJs(usrTestDirectory + '/' + usrTestScript);
+
+// Arg4 should be user tests
+var usrSrcScript = phantom.args[3];
 importJs(usrSrcScript);
 
 // Run QUnit

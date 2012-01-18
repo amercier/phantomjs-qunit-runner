@@ -10,6 +10,8 @@ import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.plugin.AbstractMojo;
@@ -105,7 +107,7 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 	private static final String phantomJsQunitRunner = "phantomjs-qunit-runner.js";
 	private static final String jsTestFileSuffix = "Test.js";
 	//private static final String jUnitXmlDirectoryName = "junitxml";
-
+	
 	public void setExcludes(String[] excludes) {
 		mExcludes = excludes;
 	}
@@ -116,8 +118,7 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 		// Go over all the js test files in jsTestDirectory
 		for (File temp : getJsTestFiles(jsTestDirectory.toString())) {
 			// Run each through phantomJs to test
-			retCode += runQUnitInPhantomJs(temp.getName().toString(),
-					jsTestDirectory.toString());
+			retCode += runQUnitInPhantomJs(temp);
 		}
 
 		if (!ignoreFailures) {
@@ -126,6 +127,28 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 				throw new MojoFailureException("One or more QUnit tests failed");
 			}
 		}
+	}
+	
+	protected List<File> getJsFiles(File directory, final String suffix) {
+		List<File> files = new LinkedList<File>();
+		
+		// FilenameFilter that accept sub-directories and *<suffix> files
+		FilenameFilter jsFileFilter = new FilenameFilter() {
+			public boolean accept(File dir, String filename) {
+				File f = new File(dir.toString() + "/" + filename);
+				return f.isDirectory() || f.isFile() && (suffix == null || filename.endsWith(suffix));
+			}
+		};
+		
+		for(File f : directory.listFiles(jsFileFilter)) {
+			if(f.isFile()) {
+				files.add(f);
+			}
+			else {
+				files.addAll( getJsFiles(f, suffix) );
+			}
+		}
+		return files;
 	}
 
 	protected File[] getJsIncludeFiles() {
@@ -138,7 +161,7 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 		return files;
 	}
 
-	private int runQUnitInPhantomJs(String testFile, String testFileDirectory) {
+	private int runQUnitInPhantomJs(File testFile) {
 		int exitVal = 255;
 		try {
 
@@ -146,7 +169,7 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 			// needs to be : phantomjs phantomjsqunitrunner qunit.js AbcTest.js
 			// Abc.js
 			// Abc.js
-			String[] params = new String[5 + (getJsIncludeFiles()).length];
+			String[] params = new String[6 + (getJsIncludeFiles()).length];
 			// XXX todo : unix executable. how to store and pull down from
 			// nexus?
 
@@ -178,12 +201,13 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 			// params[2] =
 			// this.getClass().getClassLoader().getResource(qUnitJsFileName).toString();
 
-			params[i++] = testFileDirectory + "/" + testFile;
+			params[i++] = jsTestDirectory.toString();
+			
+			String testFileName = testFile.toString().substring( jsTestDirectory.toString().length() + 1 );
+			params[i++] = testFileName;
 
 			// Some dirty string manipulation here to resolve js src file
-			params[i++] = jsSourceDirectory + "/"
-					+ testFile.substring(0, testFile.indexOf(jsTestFileSuffix))
-					+ ".js";
+			params[i++] = jsSourceDirectory + "/" + testFileName.substring(0, testFileName.indexOf(jsTestFileSuffix)) + ".js";
 
 			// Add <jsSourceIncludes> to the parameters
 			for(File temp : getJsIncludeFiles()) {
@@ -213,7 +237,7 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 
 			jUnitXmlOutputPath.mkdir();
 			BufferedWriter output = new BufferedWriter(new FileWriter(
-					jUnitXmlOutputPath + "/" + testFile + ".xml"));
+					jUnitXmlOutputPath + "/" + testFile.getName() + ".xml"));
 
 			String line = null;
 			while ((line = input.readLine()) != null) {
@@ -230,11 +254,6 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 
 	private File[] getJsTestFiles(String dirName) {
 		File dir = new File(dirName);
-
-		return dir.listFiles(new FilenameFilter() {
-			public boolean accept(File dir, String filename) {
-				return filename.endsWith(jsTestFileSuffix);
-			}
-		});
+		return getJsFiles(dir, jsTestFileSuffix).toArray(new File[0]);
 	}
 }
