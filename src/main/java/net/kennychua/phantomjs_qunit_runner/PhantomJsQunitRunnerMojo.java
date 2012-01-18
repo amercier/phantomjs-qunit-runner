@@ -165,6 +165,9 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 		int exitVal = 255;
 		try {
 
+			String testFileName = testFile.toString().substring( jsTestDirectory.toString().length() + 1 );
+			this.getLog().info("Running " + testFileName);
+			
 			// Set paramaters
 			// needs to be : phantomjs phantomjsqunitrunner qunit.js AbcTest.js
 			// Abc.js
@@ -203,7 +206,6 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 
 			params[i++] = jsTestDirectory.toString();
 			
-			String testFileName = testFile.toString().substring( jsTestDirectory.toString().length() + 1 );
 			params[i++] = testFileName;
 
 			// Some dirty string manipulation here to resolve js src file
@@ -218,13 +220,13 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 			// This allow PhantomJS to be run in a fake-X environment (Xvfb)
 			ProcessBuilder prb = new ProcessBuilder(params);
 			prb.environment().put("DISPLAY", ":" + phantomJsDisplay + ".0");
-			this.getLog().info("DISPLAY = " + prb.environment().get("DISPLAY"));
+			this.getLog().debug("DISPLAY = " + prb.environment().get("DISPLAY"));
 
-			String parametersString = "Running: ";
+			String parametersString = "";
 			for(int j = 0 ; j < params.length ; j++) {
-				parametersString += " " + params[j];
+				parametersString += params[j] + " ";
 			}
-			this.getLog().info(parametersString);
+			this.getLog().debug(parametersString);
 
 			Process pr = prb.start();
 
