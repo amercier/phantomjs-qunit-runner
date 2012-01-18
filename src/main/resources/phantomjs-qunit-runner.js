@@ -100,7 +100,7 @@ function extend(a, b) {
 
 	return a;
 }
-JUnitXmlFormatter.printJUnitXmlOutputHeader(0, testsPassed + testsFailed, totalRunTime, testsFailed, usrTestScript);
+JUnitXmlFormatter.printJUnitXmlOutputHeader(0, testsPassed + testsFailed, totalRunTime, testsFailed, usrTestScript.replace(/\.js$/, ''));
 QUnit.begin({});
 
 // Initialize the config, saving the execution queue
