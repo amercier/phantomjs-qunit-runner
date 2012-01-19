@@ -40,7 +40,7 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 	 * 
 	 * @parameter expression="${qunit.jsinc.files}"
 	 */
-	private String jsSourceIncludes;
+	private File[] jsSourceIncludes;
 
 	/**
 	 * Directory of JS test files.
@@ -152,13 +152,7 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 	}
 
 	protected File[] getJsIncludeFiles() {
-		String[] filenames = jsSourceIncludes.split(",");
-		File[] files = new File[filenames.length];
-		int i = 0;
-		for(String filename : filenames) {
-			files[i++] = new File(filename);
-		}
-		return files;
+		return jsSourceIncludes;
 	}
 
 	private int runQUnitInPhantomJs(File testFile) {
