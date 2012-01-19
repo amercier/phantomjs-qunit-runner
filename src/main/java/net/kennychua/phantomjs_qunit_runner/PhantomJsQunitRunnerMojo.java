@@ -162,52 +162,60 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 			String testFileName = testFile.toString().substring( jsTestDirectory.toString().length() + 1 );
 			this.getLog().info("Running " + testFileName);
 			
-			// Set paramaters
-			// needs to be : phantomjs phantomjsqunitrunner qunit.js AbcTest.js
-			// Abc.js
-			// Abc.js
-			String[] params = new String[6 + (getJsIncludeFiles()).length];
-			// XXX todo : unix executable. how to store and pull down from
-			// nexus?
+			// Set parameters
+			// need to be
+			//     1. phantomjs
+			//     2. phantomjsqunitrunner.js
+			//     3. qunit.js
+			//     4. <Test Directory>
+			//     5. <Test File Name> (relative to <Test Directory>)
+			//     6. <Source File Name> (absolute)
+			//     ... global dependencies
+			//     ... test dependencies
+			List<String> params = new LinkedList<String>();
 
 			// Set path to PhantomJs
-			int i = 0;
-			//params[i++] = "DISPLAY=:" + phantomJsDisplay == null ? 0 : phantomJsDisplay);
-			params[i++] = pathToPhantomJs + "/" + "phantomjs";
+			params.add(pathToPhantomJs + "/" + "phantomjs");
 
 			// Copy phantomJsQunitRunner and qUnitJsFileName over from
 			// phantomjs-qunit-runner plugin over for use..
 			try {
 				FileUtils.copyInputStreamToFile(
-						this.getClass().getClassLoader()
-								.getResourceAsStream(phantomJsQunitRunner),
-						new File(buildDirectory + "/" + phantomJsQunitRunner));
-				FileUtils.copyInputStreamToFile(this.getClass()
-						.getClassLoader().getResourceAsStream(qUnitJsFileName),
-						new File(buildDirectory + "/" + qUnitJsFileName));
+						this.getClass().getClassLoader().getResourceAsStream(phantomJsQunitRunner),
+						new File(buildDirectory + "/" + phantomJsQunitRunner)
+					);
+				FileUtils.copyInputStreamToFile(
+						this.getClass().getClassLoader().getResourceAsStream(qUnitJsFileName),
+						new File(buildDirectory + "/" + qUnitJsFileName)
+					);
 			}
 			catch (IOException e) {
 				e.printStackTrace();
 			}
+			
+			// phantomjsqunitrunner.js && qunit.js
 
 			// Set param 1 and 3 to the previously copied files
-			params[i++] = buildDirectory + "/" + phantomJsQunitRunner;
-			params[i++] = buildDirectory + "/" + qUnitJsFileName;
-			// params[1] =
-			// this.getClass().getClassLoader().getResource(phantomJsQunitRunner).toString();
-			// params[2] =
-			// this.getClass().getClassLoader().getResource(qUnitJsFileName).toString();
-
-			params[i++] = jsTestDirectory.toString();
+			params.add(buildDirectory + "/" + phantomJsQunitRunner);
+			params.add(buildDirectory + "/" + qUnitJsFileName);
 			
-			params[i++] = testFileName;
+			// Test Directory
+			params.add(jsTestDirectory.toString());
+			
+			// Test File Name
+			params.add(testFileName);
 
-			// Some dirty string manipulation here to resolve js src file
-			params[i++] = jsSourceDirectory + "/" + testFileName.substring(0, testFileName.indexOf(jsTestFileSuffix)) + ".js";
+			// Source File Name
+			params.add(jsSourceDirectory + "/" + testFileName.substring(0, testFileName.indexOf(jsTestFileSuffix)) + ".js");
 
 			// Add <jsSourceIncludes> to the parameters
 			for(File temp : getJsIncludeFiles()) {
-				params[i++] = temp.toString();
+				params.add(temp.toString());
+			}
+
+			// Add <jsSourceIncludes> to the parameters
+			for(File temp : getDependencies(testFileName)) {
+				params.add(temp.toString());
 			}
 
 			// Add DISPLAY environment variable
@@ -217,8 +225,8 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 			this.getLog().debug("DISPLAY = " + prb.environment().get("DISPLAY"));
 
 			String parametersString = "";
-			for(int j = 0 ; j < params.length ; j++) {
-				parametersString += params[j] + " ";
+			for(String param : params) {
+				parametersString += param + " ";
 			}
 			this.getLog().debug(parametersString);
 
@@ -246,6 +254,24 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 			e.printStackTrace();
 		}
 		return exitVal;
+	}
+
+	protected File[] getDependencies(String testFileName) {
+		List<File> dependencies = new LinkedList<File>();
+		File temp = new File(jsTestDirectory + "/" + testFileName.replaceFirst("\\.js$", ".txt"));
+		if(temp.exists()) {
+			try {
+				for(String filename : FileUtils.readLines(temp)) {
+					dependencies.add(new File(filename));
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		else {
+			this.getLog().debug("File " + jsTestDirectory + "/" + testFileName.replaceFirst("\\.js$", ".txt") + " does not exist");
+		}
+		return dependencies.toArray(new File[0]);
 	}
 
 	private File[] getJsTestFiles(String dirName) {
