@@ -57,7 +57,7 @@ public class QunitHtmlWrapperMojo extends AbstractMojo {
 	private static final String qUnitCssFileName = "qunit-git.css";
 	private static final String jsTestFileSuffix = "Test.js";
 	private static final String qUnitHtmlOutputDirectoryName = "qunit-html";
-	private static final String qUnitHeader = "<html><head><title>QUnit Test Suite</title><link rel=\"stylesheet\" href=\"qunit-git.css\" type=\"text/css\" media=\"screen\"><script type=\"text/javascript\" src=\"qunit-git.js\"></script>";
+	private static final String qUnitHeader = "<!DOCTYPE html><html><head><title>QUnit Test Suite</title><link rel=\"stylesheet\" href=\"qunit-git.css\" type=\"text/css\" media=\"screen\"><script type=\"text/javascript\" src=\"qunit-git.js\"></script>";
 	private static final String qUnitFooter = "</head><body><h1 id=\"qunit-header\">QUnit Test Suite</h1><h2 id=\"qunit-banner\"></h2><div id=\"qunit-testrunner-toolbar\"></div><h2 id=\"qunit-userAgent\"></h2><ol id=\"qunit-tests\"></ol></body></html>";
 	private static String qUnitHtmlOutputPath;
 
