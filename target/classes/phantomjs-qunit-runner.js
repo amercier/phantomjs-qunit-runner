@@ -119,15 +119,20 @@ var usrTestScript;
 
 // Arg 4+ should be included files
 usrIncScripts = [];
-for(var i = 3 ; i < phantom.args.length ; i++) {
+for(var i = 4 ; i < phantom.args.length ; i++) {
 	usrIncScripts[i-3] = phantom.args[i];
 	importJs(phantom.args[i]);
+}
+
+//Arg3 should be user source file
+if(phantom.args[3]) {
+	importJs(phantom.args[3]);
 }
 
 // Arg2 should be user tests directory
 usrTestDirectory = phantom.args[1];
 
-// Arg3 should be user tests
+// Arg3 should be user test
 usrTestScript = phantom.args[2];
 importJs(usrTestDirectory + '/' + usrTestScript);
 
