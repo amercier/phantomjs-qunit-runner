@@ -52,30 +52,40 @@ public class QunitHtmlWrapperMojo extends AbstractMojo {
 	 * @parameter expression="${project.build.directory}"
 	 */
 	private File buildDirectory;
+	
+	private List<File> _allFiles = new LinkedList<File>();
 
 	private static final String qUnitJsFileName = "qunit-git.js";
 	private static final String qUnitCssFileName = "qunit-git.css";
 	private static final String jsTestFileSuffix = "Test.js";
 	private static final String qUnitHtmlOutputDirectoryName = "qunit-html";
-	private static final String qUnitHeader = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>QUnit Test Suite</title><link rel=\"stylesheet\" href=\"qunit-git.css\" type=\"text/css\" media=\"screen\"><script type=\"text/javascript\" src=\"qunit-git.js\"></script>";
-	private static final String qUnitFooter = "</head><body><h1 id=\"qunit-header\">QUnit Test Suite</h1><h2 id=\"qunit-banner\"></h2><div id=\"qunit-testrunner-toolbar\"></div><h2 id=\"qunit-userAgent\"></h2><ol id=\"qunit-tests\"></ol></body></html>";
+	
+	private static final String qUnitHeader = "<!DOCTYPE html>\n"
+			+ "<html>\n"
+			+ "<head>\n"
+			+ "<meta charset=\"utf-8\">\n"
+			+ "<title>QUnit Test Suite</title>\n"
+			+ "<link rel=\"stylesheet\" href=\"qunit-git.css\" type=\"text/css\" media=\"screen\">\n"
+			+ "<script type=\"text/javascript\" src=\"qunit-git.js\"></script>\n";
+	
+	private static final String qUnitFooter = "</head>"
+			+ "<body>"
+			+ "<h1 id=\"qunit-header\">QUnit Test Suite</h1>\n"
+			+ "<h2 id=\"qunit-banner\"></h2>\n"
+			+ "<div id=\"qunit-testrunner-toolbar\"></div>\n"
+			+ "<h2 id=\"qunit-userAgent\"></h2>\n"
+			+ "<ol id=\"qunit-tests\"></ol>\n"
+			+ "</body>\n"
+			+ "</html>";
+	
 	private static String qUnitHtmlOutputPath;
 
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		qUnitHtmlOutputPath = buildDirectory + "/" + qUnitHtmlOutputDirectoryName;
 
-		// Copy include files
-		try {
-			for(File temp : getJsIncludeFiles()) {
-				FileUtils.copyFile(temp, new File(qUnitHtmlOutputPath + "/" + temp.getName()));
-			}
-		}
-		catch(IOException e) {
-			e.printStackTrace();
-		}
-
 		// Go over all the js test files in jsTestDirectory
-		for (File temp : getJsTestFiles(jsTestDirectory)) {
+		File[] testFiles = getJsTestFiles(jsTestDirectory);
+		for (File temp : testFiles) {
 			
 			String testFileName = temp.toString().substring( jsTestDirectory.toString().length() + 1 );
 			this.getLog().info("Generating QUnit HTML page for " + testFileName);
@@ -83,52 +93,105 @@ public class QunitHtmlWrapperMojo extends AbstractMojo {
 			// Run each through phantomJs to test
 			generateQunitHtmlOutput(testFileName);
 		}
+		
+		// Generate all.html
+		if(testFiles.length > 0) {
+			generateQunitHtmlOutput("all.html");
+		}
 	}
 
 	protected File[] getJsIncludeFiles() {
 		return jsSourceIncludes;
 	}
 	
+	protected String getJsTestPath(String testFileName) {
+		return jsTestDirectory + "/" + testFileName.replaceFirst("\\.js$", "");
+	}
+	
 	protected File[] getDependencies(String testFileName) {
+		
+		String path = getJsTestPath(testFileName);
 		List<File> dependencies = new LinkedList<File>();
-		File temp = new File(jsTestDirectory + "/" + testFileName.replaceFirst("\\.js$", ".txt"));
-		if(temp.exists()) {
+		
+		// <filename>.txt dependencies 
+		File tempFile = new File(path + ".txt");
+		if(tempFile.exists()) {
+			this.getLog().debug("Found file " + path + ".txt");
 			try {
-				for(String filename : FileUtils.readLines(temp)) {
-					dependencies.add(new File(filename));
+				for(String filename : FileUtils.readLines(tempFile)) {
+					dependencies.add(new File(filename).getAbsoluteFile());
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
 		else {
-			this.getLog().debug("File " + jsTestDirectory + "/" + testFileName.replaceFirst("\\.js$", ".txt") + " does not exist");
+			this.getLog().debug("File " + path + ".txt does not exist");
 		}
+		
 		return dependencies.toArray(new File[0]);
+	}
+	
+	// <filename>/* dependencies
+	protected File[] getResources(String testFileName) {
+		
+		String path = getJsTestPath(testFileName);
+		List<File> resources = new LinkedList<File>();
+		
+		File tempDir = new File(path);
+		if(!tempDir.exists()) {
+			this.getLog().debug("Resource directory " + path + " does not exist");
+		}
+		else if(!tempDir.isDirectory()) {
+			this.getLog().error("Resource directory " + path + " is not a directory");
+		}
+		else {
+			this.getLog().debug("Found resource directory " + path);
+			for(String filename : tempDir.list()) {
+				resources.add(new File(testFileName.replaceFirst("\\.js$", "") + "/" + filename));
+			}
+		}
+		
+		return resources.toArray(new File[0]);
 	}
 
 	private void generateQunitHtmlOutput(String testFileName) {
 	
 		// Create folder
-		this.getLog().debug("   - Creating " + qUnitHtmlOutputPath);
-		new File(qUnitHtmlOutputPath).mkdir();
+		if(!new File(qUnitHtmlOutputPath).exists()) {
+			this.getLog().debug("   - Creating " + qUnitHtmlOutputPath);
+			try {
+				FileUtils.forceMkdir(new File(qUnitHtmlOutputPath));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 		
 		// Create the QUnit HTML wrapper files
-		this.getLog().debug("   - Writing " + testFileName.replaceAll(".*/([^/]+)", "$1"));
+		this.getLog().debug("   - Writing " + testFileName.replaceAll(".*/([^/]+)", "$1").replaceAll("\\.js$", ".html"));
 		writeQunitHtmlFile(testFileName);
 		
-		// Copy the QUnit Js and Css files
-		copyQunitResources();
-		
-		// Copy the Js source files to be tested
-		copyJsFiles(testFileName);
+		if(testFileName != "all.html") {
+			
+			// Copy the QUnit Js and Css files
+			copyQunitResources();
+			
+			// Copy the Js source files to be tested
+			copyJsFiles(testFileName);
+		}
 	}
 
 	private void copyQunitResources() {
 		// copy qunit js & css
 		try {
-			FileUtils.copyInputStreamToFile(this.getClass().getClassLoader().getResourceAsStream(qUnitCssFileName), new File(qUnitHtmlOutputPath + "/" + qUnitCssFileName));
-			FileUtils.copyInputStreamToFile(this.getClass().getClassLoader().getResourceAsStream(qUnitJsFileName), new File(qUnitHtmlOutputPath + "/" + qUnitJsFileName));
+			File cssFile = new File(qUnitHtmlOutputPath + "/" + qUnitCssFileName);
+			File jsFile  = new File(qUnitHtmlOutputPath + "/" + qUnitJsFileName);
+			if(!cssFile.exists()) {
+				FileUtils.copyInputStreamToFile(this.getClass().getClassLoader().getResourceAsStream(qUnitCssFileName), cssFile);
+			}
+			if(!jsFile.exists()) {
+				FileUtils.copyInputStreamToFile(this.getClass().getClassLoader().getResourceAsStream(qUnitJsFileName), jsFile);
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -139,21 +202,38 @@ public class QunitHtmlWrapperMojo extends AbstractMojo {
 		// work out what the source js file name is
 		// eg abcTest.js resolves to abc.js
 		// then, copy BOTH files for qunit to run nicely in a browser
-		String srcFileName = testFileName.substring(0, testFileName.indexOf(jsTestFileSuffix)) + ".js";
 		
 		// Copy from current plugin to the buildDir of the calling project.. 
 		try {
 			
-			for(File dependency : getDependencies(testFileName)) {
-				this.getLog().debug("   - Copying " + dependency + " to " + dependency.getName());
-				FileUtils.copyFile(dependency, new File(qUnitHtmlOutputPath + "/" + dependency.getName()));
+			// Copy resources
+			String resourceSourcePath      = testFileName.replaceFirst("\\.js", "");
+			String resourceDestinationPath = new File(testFileName).getName().replaceFirst("\\.js", "");
+			File   resourceSourceDir       = new File(jsTestDirectory + "/" + resourceSourcePath);
+			File   resourceDestinationDir  = new File(qUnitHtmlOutputPath + "/" + resourceDestinationPath);
+			if(!resourceSourceDir.exists()) {
+				this.getLog().debug("Resource directory " + resourceSourceDir + " does not exist");
 			}
-			
-			this.getLog().debug("   - Copying " + testFileName + " to " + testFileName.replaceAll(".*/([^/]+)", "$1"));
-			FileUtils.copyFile(new File(jsTestDirectory + "/" + testFileName), new File(qUnitHtmlOutputPath + "/" + testFileName.replaceAll(".*/([^/]+)", "$1")));
-			this.getLog().debug("   - Copying " + srcFileName + " to " + srcFileName.replaceAll(".*/([^/]+)", "$1"));
-			FileUtils.copyFile(new File(jsSourceDirectory + "/" + srcFileName), new File(qUnitHtmlOutputPath + "/" + srcFileName.replaceAll(".*/([^/]+)", "$1")));
-		} catch (IOException e) {
+			else if(!resourceSourceDir.isDirectory()) {
+				this.getLog().error("Resource directory " + resourceSourceDir + " already exists and is not a directory");
+			}
+			else if(resourceDestinationDir.exists() && !resourceDestinationDir.isDirectory()) {
+				this.getLog().error("Resource directory " + resourceDestinationDir + " already exists and is not a directory");
+			}
+			else {
+				this.getLog().debug("Found resource directory " + resourceSourceDir);
+				if(resourceDestinationDir.exists() && resourceDestinationDir.list().length > 0) {
+					this.getLog().debug("   - Cleaning resource directory " + resourceDestinationDir);
+					FileUtils.cleanDirectory(resourceDestinationDir);
+				}
+				else {
+					this.getLog().debug("   - Resource directory " + resourceDestinationDir + (resourceDestinationDir.exists() ? " is already empty" : " does not exist, nothing to empty"));
+				}
+				this.getLog().debug("   - Copying resource directory " + resourceSourcePath + " to " + qUnitHtmlOutputPath.replaceAll(".*/([^/]+)", "$1") + "/" + resourceDestinationPath);
+				FileUtils.copyDirectory(resourceSourceDir, resourceDestinationDir);
+			}
+		}
+		catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
@@ -186,27 +266,59 @@ public class QunitHtmlWrapperMojo extends AbstractMojo {
 
 	private String generateScriptTag(String fileName) {
 		return "<script type=\"text/javascript\" src=\"" + fileName
-				+ "\"></script>";
+				+ "\"></script>\n";
+	}
+	
+	private String getRelativePath(File script, File outputPath) {
+		File projectDirectory = new File("");
+		String sourceRelativePath = outputPath.getAbsolutePath().replaceFirst(projectDirectory.getAbsolutePath().toString(), "").replaceAll("/[^/]+", "../");
+		return sourceRelativePath + script.getAbsolutePath().replaceFirst(projectDirectory.getAbsolutePath() + "/", "");
 	}
 
 	private void writeQunitHtmlFile(String testFileName) {
 		
 		String jsTestFile = testFileName.replaceAll(".*/([^/]+)", "$1");
-		String jsSrcFile = jsTestFile.substring(0, jsTestFile.indexOf(jsTestFileSuffix)) + ".js";
+		jsTestFile = jsTestFile.replaceAll("\\.js", ".html");
+		
 		BufferedWriter output;
 		try {
-			output = new BufferedWriter(new FileWriter(qUnitHtmlOutputPath + "/" + jsTestFile + ".html"));
+			output = new BufferedWriter(new FileWriter(qUnitHtmlOutputPath + "/" + jsTestFile));
 			output.write(qUnitHeader);
+			
+			File qUnitHtmlOutputDirectory = new File(qUnitHtmlOutputPath);
+			
+			// Common include files
 			for(File temp : getJsIncludeFiles()) {
-				output.write(generateScriptTag(temp.getName()));
+				output.write(generateScriptTag(getRelativePath(temp, qUnitHtmlOutputDirectory)));
 			}
-			for(File temp : getDependencies(testFileName)) {
-				output.write(generateScriptTag(temp.getName()));
+			
+			// Specific include files
+			if(testFileName == "all.html") {
+				for(File temp : _allFiles) {
+					output.write(generateScriptTag(getRelativePath(temp, qUnitHtmlOutputDirectory)));
+				}
 			}
-			output.write(generateScriptTag(jsSrcFile));
-			output.write(generateScriptTag(jsTestFile));
+			else {
+				for(File temp : getDependencies(testFileName)) {
+					output.write(generateScriptTag(getRelativePath(temp, qUnitHtmlOutputDirectory)));
+					if(!_allFiles.contains(temp)) {
+						_allFiles.add(temp);
+					}
+				}
+				File sourceFile = new File(jsSourceDirectory + "/" + testFileName.substring(0, testFileName.indexOf(jsTestFileSuffix)) + ".js");
+				File testFile   = new File(jsTestDirectory + "/" + testFileName);
+				output.write(generateScriptTag(getRelativePath(sourceFile, qUnitHtmlOutputDirectory)));
+				output.write(generateScriptTag(getRelativePath(testFile, qUnitHtmlOutputDirectory)));
+				if(!_allFiles.contains(sourceFile)) {
+					_allFiles.add(sourceFile);
+				}
+				if(!_allFiles.contains(testFile)) {
+					_allFiles.add(testFile);
+				}
+			}
 			output.write(qUnitFooter);
 			output.close();
+
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
