@@ -3,7 +3,7 @@
 	<groupId>net.kennychua</groupId>
 	<artifactId>phantomjs-qunit-runner</artifactId>
 	<packaging>maven-plugin</packaging>
-	<version>1.0.7</version>
+	<version>2.0.0-SNAPSHOT</version>
 	<name>phantomjs-qunit-runner Maven Mojo</name>
 	<url>http://maven.apache.org</url>
 	<licenses>
@@ -44,9 +44,9 @@
 		</dependency>
 	</dependencies>
 	<scm>
-		<url>https://code.google.com/p/phantomjs-qunit-runner/tags/phantomjs-qunit-runner-1.0.6</url>
-		<connection>scm:svn:https://phantomjs-qunit-runner.googlecode.com/svn/tags/phantomjs-qunit-runner-1.0.6</connection>
-		<developerConnection>scm:svn:https://phantomjs-qunit-runner.googlecode.com/svn/tags/phantomjs-qunit-runner-1.0.6</developerConnection>
+		<connection>scm:git:git@github.com:amercier/phantomjs-qunit-runner.git</connection>
+		<developerConnection>scm:git:git@amercier/phantomjs-qunit-runner.git</developerConnection>
+		<url>git@github.com:amercier/phantomjs-qunit-runner.git</url>
 	</scm>
 
 	<build>
@@ -68,5 +68,38 @@
 				</configuration>
 			</plugin>
 		</plugins>
+
+		<pluginManagement>
+			<plugins>
+
+				<!-- Eclipse M2E Plugin configuration -->
+				<plugin>
+					<groupId>org.eclipse.m2e</groupId>
+					<artifactId>lifecycle-mapping</artifactId>
+					<version>1.0.0</version>
+					<configuration>
+						<lifecycleMappingMetadata>
+							<pluginExecutions>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.apache.maven.plugins</groupId>
+										<artifactId>maven-enforcer-plugin</artifactId>
+										<versionRange>[1.0,)</versionRange>
+										<goals>
+											<goal>enforce</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<ignore></ignore>
+									</action>
+								</pluginExecution>
+							</pluginExecutions>
+						</lifecycleMappingMetadata>
+					</configuration>
+				</plugin>
+				
+			</plugins>
+		</pluginManagement>
+
 	</build>
 </project>
