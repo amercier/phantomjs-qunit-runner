@@ -115,6 +115,7 @@ function importJs(scriptName) {
 		if( !phantom.injectJs(scriptName) ) {
 			throw new Error('File not found: ' + scriptName);
 		}
+		JUnitXmlFormatter.addLine("\t<!-- Included " + scriptName + " successfully -->");
 	}
 	catch(e) {
 		globalSystemErr.push('File ' + scriptName + ': ' + e);
