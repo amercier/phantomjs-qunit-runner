@@ -49,8 +49,8 @@ var originalConsole = window.console,
 var JUnitXmlFormatter = {
 	lines: [],
 	printJUnitXmlOutputHeader : function(testsErrors, testsTotal, testsTotalRunTime, testsFailures, testsFileName) {
-		console.log("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>");
-		console.log("<testsuite errors=\"{_testsErrors}\" tests=\"{_testsTotal}\" time=\"{_testsTotalRunTime}\" failures=\"{_testsFailures}\" name=\"{_testsFileName}\">"
+		console.log('<?xml version="1.0" encoding="UTF-8" ?>');
+		console.log('<testsuite errors="{_testsErrors}" tests="{_testsTotal}" time="{_testsTotalRunTime}" failures="{_testsFailures}" name="{_testsFileName}">'
 						.supplant({
 							_testsErrors : testsErrors,
 							_testsTotal : testsTotal,
@@ -63,7 +63,7 @@ var JUnitXmlFormatter = {
 		this.lines.push(line);
 	},
 	addJUnitXmlTestCasePass : function(testName, testRunTime, standardOutput, standardError) {
-		this.addLine("\t<testcase time=\"{_testRunTime}\" name=\"{_testName}\">".supplant({
+		this.addLine('\t<testcase time="{_testRunTime}" name="{_testName}">'.supplant({
 				_testRunTime : testRunTime,
 				_testName : testName
 			}));
@@ -72,11 +72,11 @@ var JUnitXmlFormatter = {
 		this.addLine("\t</testcase>");
 	},
 	addJUnitXmlTestCaseFail : function(testName, testRunTime, failureType, failureMessage, standardOutput, standardError) {
-		this.addLine("\t<testcase time=\"{_testRunTime}\" name=\"{_testName}\">".supplant({
+		this.addLine('\t<testcase time="{_testRunTime}" name="{_testName}">'.supplant({
 				_testRunTime : testRunTime,
 				_testName : testName
 			}));
-		this.addLine("\t\t<failure type=\"{_failureType}\" message=\"{_failureMessage}\">Test {_testName} died, exception and test follows</failure>".supplant({
+		this.addLine('\t\t<failure type="{_failureType}" message="{_failureMessage}">Test {_testName} died, exception and test follows</failure>'.supplant({
 				_failureType : failureType,
 				_failureMessage : failureMessage,
 				_testName : testName

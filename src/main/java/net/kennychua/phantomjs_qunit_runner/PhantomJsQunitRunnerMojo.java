@@ -245,7 +245,7 @@ public class PhantomJsQunitRunnerMojo extends AbstractMojo {
 
 			String line = null;
 			while ((line = input.readLine()) != null) {
-				output.write(line);
+				output.write(line + "\n");
 			}
 
 			output.close();
