@@ -218,35 +218,50 @@ QUnit.done = function(i) {
 	running = false;
 }
 
-// Instead of QUnit.start(); just directly exec; the timer stuff seems to
-// invariably screw us up and we don't need it
-QUnit.config.semaphore = 0;
-while (QUnit.config.queue.length)
-	QUnit.config.queue.shift()();
-
-// wait for completion
-var ct = 0;
-while (running) {
-	if (ct++ % 1000000 == 0) {
-		// console.log('queue is at ' + QUnit.config.queue.length);
+function waitForCompletion() {
+	// Instead of QUnit.start(); just directly exec; the timer stuff seems to
+	// invariably screw us up and we don't need it
+	QUnit.config.semaphore = 0;
+	while (QUnit.config.queue.length)
+		QUnit.config.queue.shift()();
+	
+	// wait for completion
+	var ct = 0;
+	
+	while (running) {
+		//console.log(QUnit.config.queue.length + ' tests remaining');
+		if (ct++ % 1000000 == 0) {
+			// console.log('queue is at ' + QUnit.config.queue.length);
+		}
+		if (!QUnit.config.queue.length) {
+			QUnit.done();
+		}
 	}
-	if (!QUnit.config.queue.length) {
-		QUnit.done();
+	
+	JUnitXmlFormatter.printJUnitXmlOutputHeader(0, testsPassed + testsFailed, totalRunTime, testsFailed, usrTestScript.replace(/\.js$/, '').replace(/\./g, '-').replace(/\//g, '.'));
+
+	if(globalSystemOut.length) {
+		JUnitXmlFormatter.addJUnitXmlSystemOut(globalSystemOut, true);
 	}
+	if(globalSystemErr.length) {
+		JUnitXmlFormatter.addJUnitXmlSystemErr(globalSystemErr, true);
+	}
+
+	JUnitXmlFormatter.printJUnitXmlOutputBody();
+	JUnitXmlFormatter.printJUnitXmlOutputFooter();
+
+	// exit code is # of failed tests; this facilitates Ant failonerror.
+	// Alternately, 1 if testsFailed > 0.
+	phantom.exit(testsFailed);
 }
 
-JUnitXmlFormatter.printJUnitXmlOutputHeader(0, testsPassed + testsFailed, totalRunTime, testsFailed, usrTestScript.replace(/\.js$/, '').replace(/\./g, '-').replace(/\//g, '.'));
-
-if(globalSystemOut.length) {
-	JUnitXmlFormatter.addJUnitXmlSystemOut(globalSystemOut, true);
+if(typeof requirejs !== 'undefined') {
+	requirejs.config({
+		callback: function() {
+			waitForCompletion();
+		}
+	});
 }
-if(globalSystemErr.length) {
-	JUnitXmlFormatter.addJUnitXmlSystemErr(globalSystemErr, true);
+else {
+	waitForCompletion();
 }
-
-JUnitXmlFormatter.printJUnitXmlOutputBody();
-JUnitXmlFormatter.printJUnitXmlOutputFooter();
-
-// exit code is # of failed tests; this facilitates Ant failonerror.
-// Alternately, 1 if testsFailed > 0.
-phantom.exit(testsFailed);
