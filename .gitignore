@@ -3,3 +3,4 @@
 /.settings
 /target/classes
 /target/maven-archiver
+/bin
