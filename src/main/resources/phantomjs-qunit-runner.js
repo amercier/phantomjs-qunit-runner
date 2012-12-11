@@ -1,3 +1,4 @@
+
 // Credit to Rod of http://whileonefork.blogspot.com/2011/07/javascript-unit-tests-with-qunit-ant.html for inspiration of this js file
 String.prototype.supplant = function(o) {
 	return this.replace(/{([^{}]*)}/g, function(a, b) {
@@ -14,15 +15,15 @@ if (!Function.prototype.bind) {
 		}
 		
 		var aArgs = Array.prototype.slice.call(arguments, 1), 
-		    fToBind = this, 
-		    fNOP = function () {},
-		    fBound = function () {
-		    	return fToBind.apply(
-		    			this instanceof fNOP && oThis
-		    					? this
-		    					: oThis,
-		    			aArgs.concat(Array.prototype.slice.call(arguments))
-		    		);
+			fToBind = this, 
+			fNOP = function () {},
+			fBound = function () {
+				return fToBind.apply(
+						this instanceof fNOP && oThis
+								? this
+								: oThis,
+						aArgs.concat(Array.prototype.slice.call(arguments))
+					);
 		};
 		
 		fNOP.prototype = this.prototype;
@@ -33,7 +34,7 @@ if (!Function.prototype.bind) {
 }
 
 var originalConsole = window.console,
-    newConsole = {
+	newConsole = {
 		standardOutput: [],
 		errorOutput   : [],
 		log  : function() { this.standardOutput.push(joinArguments(arguments, "\n")); },
@@ -109,6 +110,16 @@ var JUnitXmlFormatter = {
 
 var globalSystemOut = [];
 var globalSystemErr = [];
+
+phantom.onError = function(msg, trace) {
+	globalSystemErr.push('Javascript Error: ' + msg);
+	if (trace) {
+		trace.forEach(function(t) {
+			globalSystemErr.push("        " + (t.file || t.sourceURL) + ': ' + t.line + (t['function'] ? ' (in function ' + t['function'] + ')' : ''));
+		});
+	}
+};
+
 function importJs(scriptName) {
 	console = newConsole;
 	try {
@@ -196,7 +207,7 @@ QUnit.testStart = function(t) {
 	testStartDate = new Date();
 	newConsole.reset();
 	console = newConsole; 
-}
+};
 
 QUnit.testDone = function(t) {
 	testEndDate = new Date();
@@ -211,12 +222,12 @@ QUnit.testDone = function(t) {
 		testsFailed++;
 		JUnitXmlFormatter.addJUnitXmlTestCaseFail(t.name, testRunTime, 1, 1, newConsole.standardOutput, newConsole.errorOutput);
 	}
-}
+};
 
 var running = true;
 QUnit.done = function(i) {
 	running = false;
-}
+};
 
 function waitForCompletion() {
 	// Instead of QUnit.start(); just directly exec; the timer stuff seems to
