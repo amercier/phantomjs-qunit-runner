@@ -4,11 +4,13 @@ package net.kennychua.phantomjs_qunit_runner;
  */
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.plugin.AbstractMojo;
@@ -155,15 +157,16 @@ public class QunitHtmlWrapperMojo extends AbstractMojo {
 		return resources.toArray(new File[0]);
 	}
 
-	private void generateQunitHtmlOutput(String testFileName) {
+	private void generateQunitHtmlOutput(String testFileName) throws MojoExecutionException {
 	
 		// Create folder
-		if(!new File(qUnitHtmlOutputPath).exists()) {
-			this.getLog().debug("   - Creating " + qUnitHtmlOutputPath);
+		File qUnitHtmlOutputPathFile = new File(qUnitHtmlOutputPath);
+		if(!qUnitHtmlOutputPathFile.exists()) {
+			this.getLog().debug("   - Creating " + qUnitHtmlOutputPathFile);
 			try {
-				FileUtils.forceMkdir(new File(qUnitHtmlOutputPath));
+				FileUtils.forceMkdir(qUnitHtmlOutputPathFile);
 			} catch (IOException e) {
-				e.printStackTrace();
+				throw new MojoExecutionException("Can't create directory " + qUnitHtmlOutputPathFile, e);
 			}
 		}
 		
@@ -181,7 +184,7 @@ public class QunitHtmlWrapperMojo extends AbstractMojo {
 		}
 	}
 
-	private void copyQunitResources() {
+	private void copyQunitResources() throws MojoExecutionException {
 		// copy qunit js & css
 		try {
 			File cssFile = new File(qUnitHtmlOutputPath + "/" + qUnitCssFileName);
@@ -193,11 +196,11 @@ public class QunitHtmlWrapperMojo extends AbstractMojo {
 				FileUtils.copyInputStreamToFile(this.getClass().getClassLoader().getResourceAsStream(qUnitJsFileName), jsFile);
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			throw new MojoExecutionException("Can't copy QUnit resource files", e);
 		}
 	}
 	
-	private void copyJsFiles(String testFileName) {
+	private void copyJsFiles(String testFileName) throws MojoExecutionException {
 		
 		// work out what the source js file name is
 		// eg abcTest.js resolves to abc.js
@@ -234,7 +237,7 @@ public class QunitHtmlWrapperMojo extends AbstractMojo {
 			}
 		}
 		catch (IOException e) {
-			e.printStackTrace();
+			throw new MojoExecutionException("Can't copy Javascript files for " + testFileName, e);
 		}
 	}
 
@@ -275,9 +278,9 @@ public class QunitHtmlWrapperMojo extends AbstractMojo {
 		return sourceRelativePath + script.getAbsolutePath().replaceFirst(projectDirectory.getAbsolutePath() + "/", "");
 	}
 
-	private void writeQunitHtmlFile(String testFileName) {
+	private void writeQunitHtmlFile(String testFileName) throws MojoExecutionException {
 		
-		String jsTestFile = testFileName.replaceAll(".*/([^/]+)", "$1");
+		String jsTestFile = testFileName.replaceAll(".*" + Pattern.quote(File.separator) + "([^" + Pattern.quote(File.separator) + "]+)", "$1");
 		jsTestFile = jsTestFile.replaceAll("\\.js", ".html");
 		
 		BufferedWriter output;
@@ -320,7 +323,7 @@ public class QunitHtmlWrapperMojo extends AbstractMojo {
 			output.close();
 
 		} catch (IOException e) {
-			e.printStackTrace();
+			throw new MojoExecutionException("Can't write QUnit HTML file " + testFileName, e);
 		}
 	}
 }
