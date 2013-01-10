@@ -274,8 +274,8 @@ public class QunitHtmlWrapperMojo extends AbstractMojo {
 	
 	private String getRelativePath(File script, File outputPath) {
 		File projectDirectory = new File("");
-		String sourceRelativePath = outputPath.getAbsolutePath().replaceFirst(projectDirectory.getAbsolutePath().toString(), "").replaceAll("/[^/]+", "../");
-		return sourceRelativePath + script.getAbsolutePath().replaceFirst(projectDirectory.getAbsolutePath() + "/", "");
+		String sourceRelativePath = outputPath.getAbsolutePath().replaceFirst(Pattern.quote(projectDirectory.getAbsolutePath().toString()), "").replaceAll(Pattern.quote(File.separator) + "[^" + Pattern.quote(File.separator) + "]+", "../");
+		return sourceRelativePath + script.getAbsolutePath().replaceFirst(Pattern.quote(projectDirectory.getAbsolutePath() + File.separator), "").replaceAll(Pattern.quote(File.separator), "/");
 	}
 
 	private void writeQunitHtmlFile(String testFileName) throws MojoExecutionException {
@@ -285,7 +285,7 @@ public class QunitHtmlWrapperMojo extends AbstractMojo {
 		
 		BufferedWriter output;
 		try {
-			output = new BufferedWriter(new FileWriter(qUnitHtmlOutputPath + "/" + jsTestFile));
+			output = new BufferedWriter(new FileWriter(qUnitHtmlOutputPath + File.separator + jsTestFile));
 			output.write(qUnitHeader);
 			
 			File qUnitHtmlOutputDirectory = new File(qUnitHtmlOutputPath);
@@ -308,8 +308,8 @@ public class QunitHtmlWrapperMojo extends AbstractMojo {
 						_allFiles.add(temp);
 					}
 				}
-				File sourceFile = new File(jsSourceDirectory + "/" + testFileName.substring(0, testFileName.indexOf(jsTestFileSuffix)) + ".js");
-				File testFile   = new File(jsTestDirectory + "/" + testFileName);
+				File sourceFile = new File(jsSourceDirectory + File.separator + testFileName.substring(0, testFileName.indexOf(jsTestFileSuffix)) + ".js");
+				File testFile   = new File(jsTestDirectory + File.separator + testFileName);
 				output.write(generateScriptTag(getRelativePath(sourceFile, qUnitHtmlOutputDirectory)));
 				output.write(generateScriptTag(getRelativePath(testFile, qUnitHtmlOutputDirectory)));
 				if(!_allFiles.contains(sourceFile)) {
