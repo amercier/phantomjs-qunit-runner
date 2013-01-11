@@ -4,7 +4,6 @@ package net.kennychua.phantomjs_qunit_runner;
  */
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
